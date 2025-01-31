@@ -17,22 +17,36 @@ def validate_email_field(email):
     return email
 
 
-def validate_names(first_name, last_name):
+def validate_names(first_name, middle_name=None, last_name=None):
     if not first_name:
         raise serializers.ValidationError({"first_name": "This field is required."})
-    if not first_name.isalpha():
-        raise serializers.ValidationError(
-            {"first_name": "Name should only contain letters."}
-        )
-
     if not last_name:
         raise serializers.ValidationError({"last_name": "This field is required."})
-    if not last_name.isalpha():
+
+    # Regex: Allows letters and spaces, ensures at least one letter is present
+    name_pattern = r"^[A-Za-z]+(?: [A-Za-z]+)*$"
+
+    if not regex.fullmatch(name_pattern, first_name.strip()):
         raise serializers.ValidationError(
-            {"last_name": "Name should only contain letters."}
+            {"first_name": "Name should only contain letters and spaces."}
         )
 
-    return first_name, last_name
+    if middle_name:  # Only validate if provided (since it's optional)
+        if not regex.fullmatch(name_pattern, middle_name.strip()):
+            raise serializers.ValidationError(
+                {"middle_name": "Name should only contain letters and spaces."}
+            )
+
+    if not regex.fullmatch(name_pattern, last_name.strip()):
+        raise serializers.ValidationError(
+            {"last_name": "Name should only contain letters and spaces."}
+        )
+
+    return (
+        first_name.strip(),
+        middle_name.strip() if middle_name else None,
+        last_name.strip(),
+    )
 
 
 def validate_password_fields(password, confirm_password):

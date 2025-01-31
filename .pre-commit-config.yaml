@@ -13,6 +13,8 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
       - id: check-added-large-files #  default is 500kB
+        # args: ["--max-filesize=1000000"]
+        exclude: ^edudata/location_data\.py$
 
   # - repo: https://github.com/pycqa/isort
   #   rev: 5.12.0
@@ -22,7 +24,12 @@ repos:
     rev: "1.7.5"
     hooks:
       - id: bandit
-
+        args: [
+          "-ll",  # Set minimum confidence level
+          "-ii",  # Set minimum issue severity
+          "-x", "tests",  # Exclude tests directory
+          "--skip", "B101,B104"  # Skip specific test IDs
+        ]
   - repo: https://github.com/psf/black
     rev: 23.11.0
     hooks:

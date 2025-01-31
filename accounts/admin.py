@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser
+from .models import CustomUser, BlacklistedToken
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 
 
@@ -31,6 +31,14 @@ class CustomUserAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+
+@admin.register(BlacklistedToken)
+class BlacklistedTokenAdmin(admin.ModelAdmin):
+    list_display = ("token", "blacklisted_at")
+    search_fields = ("token",)
+    readonly_fields = ("blacklisted_at",)
+    ordering = ("-blacklisted_at",)
 
 
 admin.site.register(CustomUser, CustomUserAdmin)
