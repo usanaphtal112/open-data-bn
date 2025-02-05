@@ -8,6 +8,7 @@ User = get_user_model()
 class CustomUserSerializer(serializers.Serializer):
     email = serializers.CharField(required=False)
     first_name = serializers.CharField(required=False)
+    middle_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     password = serializers.CharField(required=False, write_only=True)
     confirm_password = serializers.CharField(required=False, write_only=True)
@@ -17,8 +18,8 @@ class CustomUserSerializer(serializers.Serializer):
         email = validate_email_field(data.get("email"))
 
         # Then validate names
-        first_name, last_name = validate_names(
-            data.get("first_name"), data.get("last_name")
+        first_name, middle_name, last_name = validate_names(
+            data.get("first_name"), data.get("middle_name"), data.get("last_name")
         )
 
         # Finally validate password
@@ -30,6 +31,7 @@ class CustomUserSerializer(serializers.Serializer):
         return {
             "email": email,
             "first_name": first_name,
+            "middle_name": middle_name,
             "last_name": last_name,
             "password": password,
             "confirm_password": data.get("confirm_password"),
