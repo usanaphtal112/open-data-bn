@@ -5,14 +5,18 @@ from django.contrib.auth import get_user_model, authenticate
 from django.utils.timezone import now
 from datetime import timedelta
 from .models import BlacklistedToken
-from .serializers import CustomUserSerializer, LoginSerializer
+from .serializers import CustomUserSerializer, LoginSerializer, GetCustomUserSerializer
 from .validation import is_email_already_registered
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
+from .swagger_docs import (
+    register_api_docs,
+    login_api_docs,
+    logout_api_docs,
+    get_users_api_docs,
+)
 
 User = get_user_model()
 
@@ -34,60 +38,7 @@ class RegisterAPIView(APIView):
 
     serializer_class = CustomUserSerializer
 
-    @swagger_auto_schema(
-        operation_description="Register a new user.",
-        request_body=openapi.Schema(
-            type=openapi.TYPE_OBJECT,
-            required=[
-                "email",
-                "first_name",
-                "last_name",
-                "password",
-                "confirm_password",
-            ],
-            properties={
-                "email": openapi.Schema(
-                    type=openapi.TYPE_STRING, description="User's email"
-                ),
-                "first_name": openapi.Schema(
-                    type=openapi.TYPE_STRING, description="User's first name"
-                ),
-                "middle_name": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description="User's middle name (optional)",
-                ),
-                "last_name": openapi.Schema(
-                    type=openapi.TYPE_STRING, description="User's last name"
-                ),
-                "password": openapi.Schema(
-                    type=openapi.TYPE_STRING, description="Password", format="password"
-                ),
-                "confirm_password": openapi.Schema(
-                    type=openapi.TYPE_STRING,
-                    description="Confirm password",
-                    format="password",
-                ),
-            },
-        ),
-        responses={
-            201: openapi.Response(
-                description="User registered successfully",
-                examples={
-                    "application/json": {"message": "User registered successfully"}
-                },
-            ),
-            400: openapi.Response(
-                description="Bad Request",
-                examples={"application/json": {"detail": "Invalid input data"}},
-            ),
-            409: openapi.Response(
-                description="Conflict",
-                examples={
-                    "application/json": {"email": "This email is already registered."}
-                },
-            ),
-        },
-    )
+    @register_api_docs
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         try:
@@ -122,20 +73,7 @@ class LoginAPIView(APIView):
 
     serializer_class = LoginSerializer
 
-    @swagger_auto_schema(
-        operation_description="Login user and get access token",
-        request_body=LoginSerializer,
-        responses={
-            200: openapi.Response(
-                description="Login successful",
-                examples={"application/json": {"access_token": "string"}},
-            ),
-            401: openapi.Response(
-                description="Invalid credentials",
-                examples={"application/json": {"errors": ["Invalid credentials"]}},
-            ),
-        },
-    )
+    @login_api_docs
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         try:
@@ -183,21 +121,7 @@ class LogoutAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    @swagger_auto_schema(
-        operation_description="Logout user by blacklisting the access token",
-        responses={
-            200: openapi.Response(
-                description="Logout successful",
-                examples={"application/json": {"message": "Successfully logged out"}},
-            ),
-            401: openapi.Response(
-                description="Unauthorized",
-                examples={
-                    "application/json": {"error": "Invalid token or no token provided"}
-                },
-            ),
-        },
-    )
+    @logout_api_docs
     def post(self, request):
         auth_header = request.headers.get("Authorization")
 
@@ -220,3 +144,13 @@ class LogoutAPIView(APIView):
             {"message": "Successfully logged out"},
             status=status.HTTP_200_OK,
         )
+
+
+class CustomUserListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @get_users_api_docs
+    def get(self, request):
+        users = User.objects.all()
+        serializer = GetCustomUserSerializer(users, many=True)
+        return Response(serializer.data, status=200)

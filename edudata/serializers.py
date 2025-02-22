@@ -8,6 +8,7 @@ from .models import (
     AlumniNetwork,
     SchoolGovernmentData,
     AdmissionPolicy,
+    SchoolChoices,
 )
 from .location_data import PROVINCES, DISTRICTS, SECTORS, CELLS, VILLAGES
 
@@ -160,40 +161,107 @@ class SchoolLocationSerializer(serializers.ModelSerializer):
 class SchoolImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolImage
-        fields = ["image"]
+        fields = ["school", "image", "caption", "image_type"]
+
+
+class MultipleSchoolImageSerializer(serializers.Serializer):
+    school = serializers.PrimaryKeyRelatedField(queryset=School.objects.all())
+    images = serializers.ListField(child=serializers.ImageField(), write_only=True)
+    captions = serializers.ListField(
+        child=serializers.CharField(max_length=255, allow_blank=True), required=False
+    )
+    image_types = serializers.ListField(
+        child=serializers.ChoiceField(choices=SchoolChoices.ImageType.choices),
+        required=False,
+    )
+
+    def create(self, validated_data):
+        school = validated_data["school"]
+        images = validated_data["images"]
+        captions = validated_data.get("captions", [])
+        image_types = validated_data.get("image_types", [])
+
+        image_objects = []
+        for index, image in enumerate(images):
+            caption = captions[index] if index < len(captions) else ""
+            image_type = (
+                image_types[index]
+                if index < len(image_types)
+                else SchoolChoices.ImageType.OTHER
+            )
+
+            image_objects.append(
+                SchoolImage(
+                    school=school, image=image, caption=caption, image_type=image_type
+                )
+            )
+
+        return SchoolImage.objects.bulk_create(image_objects)
 
 
 class SchoolFeesSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolFees
-        exclude = ["id", "school", "created_at", "updated_at"]
+        fields = "__all__"
 
 
 class SchoolContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolContact
-        exclude = ["id", "school", "created_at", "updated_at"]
+        fields = "__all__"
 
 
 class AlumniNetworkSerializer(serializers.ModelSerializer):
     class Meta:
         model = AlumniNetwork
-        exclude = ["id", "school", "created_at", "updated_at"]
+        fields = "__all__"
 
 
 class SchoolGovernmentDataSerializer(serializers.ModelSerializer):
     class Meta:
         model = SchoolGovernmentData
-        exclude = ["id", "school", "created_at", "updated_at"]
+        fields = "__all__"
 
 
 class AdmissionPolicySerializer(serializers.ModelSerializer):
     class Meta:
         model = AdmissionPolicy
-        exclude = ["id", "school", "created_at", "updated_at"]
+        fields = "__all__"
 
 
-class SchoolSerializer(serializers.ModelSerializer):
+class SchoolListSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(
+        source="schoolcontact_set.first.phone_number", read_only=True
+    )
+    whatsapp = serializers.CharField(
+        source="schoolcontact_set.first.whatsapp", read_only=True
+    )
+    cover = serializers.SerializerMethodField()
+
+    class Meta:
+        model = School
+        fields = [
+            "id",
+            "school_code",
+            "school_name",
+            "school_type",
+            "school_level",
+            "school_gender",
+            "school_ownership",
+            "verified",
+            "average_rating",
+            "phone",
+            "whatsapp",
+            "cover",
+        ]
+
+    def get_cover(self, obj):
+        """Retrieve the first image of the school"""
+        image = obj.images.first()
+        return image.image.url if image else None
+
+
+class SchoolDetailSerializer(serializers.ModelSerializer):
     images = SchoolImageSerializer(many=True, read_only=True)
     location = SchoolLocationSerializer(
         source="schoollocation_set.first", read_only=True
@@ -211,7 +279,8 @@ class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
         fields = [
-            "school_id",
+            "id",
+            "school_code",
             "school_name",
             "school_type",
             "school_level",
@@ -219,6 +288,7 @@ class SchoolSerializer(serializers.ModelSerializer):
             "school_ownership",
             "average_rating",
             "review_count",
+            "verified",
             "school_description",
             "images",
             "location",
@@ -228,3 +298,32 @@ class SchoolSerializer(serializers.ModelSerializer):
             "government_data",
             "admission",
         ]
+
+
+class SchoolCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = School
+        fields = [
+            "school_code",
+            "school_name",
+            "school_type",
+            "school_level",
+            "school_gender",
+            "school_ownership",
+            "school_description",
+        ]
+
+    def validate(self, data):
+        """Custom validation for creating a school"""
+        if "school_name" in data and len(data["school_name"]) < 3:
+            raise serializers.ValidationError(
+                {"school_name": ["School name must be at least 3 characters long"]}
+            )
+
+        # school_name = data.get("school_name")
+        # if School.objects.filter(school_name__iexact=school_name).exists():
+        #     raise serializers.ValidationError(
+        #         {"school_name": ["A school with this name already exists"]}
+        #     )
+
+        return data

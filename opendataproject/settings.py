@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     # local apps
     "accounts.apps.AccountsConfig",
     "edudata.apps.EdudataConfig",
+    "healthdata.apps.HealthdataConfig",
 ]
 
 MIDDLEWARE = [

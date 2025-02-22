@@ -38,8 +38,9 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/auth/", include("accounts.urls")),
+    path("api/v1/", include("accounts.urls")),
     path("api/v1/edudata/", include("edudata.urls")),
+    path("api/v1/healthdata/", include("healthdata.urls")),
     re_path(
         r"^api/docs/swagger(?P<format>\.json|\.yaml)$",
         schema_view.without_ui(cache_timeout=0),

@@ -1,6 +1,7 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .location_data import PROVINCES, DISTRICTS, SECTORS, CELLS, VILLAGES
@@ -11,9 +12,37 @@ from .serializers import (
     CellSerializer,
     VillageSerializer,
     SchoolLocationSerializer,
-    SchoolSerializer,
+    SchoolDetailSerializer,
+    SchoolListSerializer,
+    SchoolCreateSerializer,
+    SchoolImageSerializer,
+    MultipleSchoolImageSerializer,
+    SchoolFeesSerializer,
+    SchoolContactSerializer,
+    SchoolGovernmentDataSerializer,
+    AlumniNetworkSerializer,
+    AdmissionPolicySerializer,
 )
-from .models import SchoolLocation, School
+from .models import School, SchoolChoices
+from .validators import (
+    validate_independent_location_codes,
+    validate_hierarchical_location_codes,
+    validate_school_filters,
+)
+from .swagger_docs import (
+    get_province_docs,
+    get_district_docs,
+    get_sector_docs,
+    get_cell_docs,
+    get_village_docs,
+    get_school_lists_docs,
+    filter_school_by_location_docs,
+    filter_school_by_location_hierarchical_docs,
+    get_school_filters_docs,
+    filter_school_docs,
+    create_school_location_docs,
+    get_school_details_docs,
+)
 
 
 class ProvinceAPIView(APIView):
@@ -23,17 +52,7 @@ class ProvinceAPIView(APIView):
     This endpoint provides a list of all provinces with their codes and names.
     """
 
-    @swagger_auto_schema(
-        operation_description="Get list of all provinces",
-        responses={
-            200: openapi.Response(
-                description="List of provinces retrieved successfully",
-                examples={
-                    "application/json": [{"code": "RW.KG", "name": "KIGALI CITY"}]
-                },
-            )
-        },
-    )
+    @get_province_docs
     def get(self, request):
         provinces = [{"code": p[0], "name": p[1]} for p in PROVINCES]
         serializer = ProvinceSerializer(provinces, many=True)
@@ -47,28 +66,7 @@ class DistrictAPIView(APIView):
     This endpoint provides districts for a specific province code.
     """
 
-    @swagger_auto_schema(
-        operation_description="Get districts for a specific province",
-        manual_parameters=[
-            openapi.Parameter(
-                "province_code",
-                openapi.IN_QUERY,
-                description="Province code (e.g., 'RW.KG' for KIGALI CITY)",
-                type=openapi.TYPE_STRING,
-                required=True,
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="List of districts retrieved successfully",
-                examples={"application/json": [{"code": "0101", "name": "NYARUGENGE"}]},
-            ),
-            400: openapi.Response(
-                description="Bad Request - Invalid or missing province_code",
-                examples={"application/json": {"error": "province_code is required"}},
-            ),
-        },
-    )
+    @get_district_docs
     def get(self, request):
         province_code = request.query_params.get("province_code")
         districts = DISTRICTS.get(province_code, [])
@@ -84,30 +82,7 @@ class SectorAPIView(APIView):
     This endpoint provides sectors for a specific district code.
     """
 
-    @swagger_auto_schema(
-        operation_description="Get sectors for a specific district",
-        manual_parameters=[
-            openapi.Parameter(
-                "district_code",
-                openapi.IN_QUERY,
-                description="District code (e.g., 'RW.KG.NY' for NYARUGENGE)",
-                type=openapi.TYPE_STRING,
-                required=True,
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="List of sectors retrieved successfully",
-                examples={
-                    "application/json": [{"code": "RW.KG.NY.GT", "name": "GITEGA"}]
-                },
-            ),
-            400: openapi.Response(
-                description="Bad Request - Invalid or missing district_code",
-                examples={"application/json": {"error": "district_code is required"}},
-            ),
-        },
-    )
+    @get_sector_docs
     def get(self, request):
         district_code = request.query_params.get("district_code")
         sectors = SECTORS.get(district_code, [])
@@ -123,32 +98,7 @@ class CellAPIView(APIView):
     This endpoint provides cells for a specific sector code.
     """
 
-    @swagger_auto_schema(
-        operation_description="Get cells for a specific sector",
-        manual_parameters=[
-            openapi.Parameter(
-                "sector_code",
-                openapi.IN_QUERY,
-                description="Sector code (e.g., 'RW.KG.NY.GT' for GITEGA)",
-                type=openapi.TYPE_STRING,
-                required=True,
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="List of cells retrieved successfully",
-                examples={
-                    "application/json": [
-                        {"code": "RW.KG.NY.GT.AK", "name": "AKABAHIZI"}
-                    ]
-                },
-            ),
-            400: openapi.Response(
-                description="Bad Request - Invalid or missing sector_code",
-                examples={"application/json": {"error": "sector_code is required"}},
-            ),
-        },
-    )
+    @get_cell_docs
     def get(self, request):
         sector_code = request.query_params.get("sector_code")
         cells = CELLS.get(sector_code, [])
@@ -164,38 +114,228 @@ class VillageAPIView(APIView):
     This endpoint provides villages for a specific cell code.
     """
 
-    @swagger_auto_schema(
-        operation_description="Get villages for a specific cell",
-        manual_parameters=[
-            openapi.Parameter(
-                "cell_code",
-                openapi.IN_QUERY,
-                description="Cell code (e.g., 'RW.KG.NY.GT.AK' for AKABAHIZI)",
-                type=openapi.TYPE_STRING,
-                required=True,
-            )
-        ],
-        responses={
-            200: openapi.Response(
-                description="List of villages retrieved successfully",
-                examples={
-                    "application/json": [
-                        {"code": "RW.KG.NY.GT.AK.GH", "name": "GIHANGA"}
-                    ]
-                },
-            ),
-            400: openapi.Response(
-                description="Bad Request - Invalid or missing cell_code",
-                examples={"application/json": {"error": "cell_code is required"}},
-            ),
-        },
-    )
+    @get_village_docs
     def get(self, request):
         cell_code = request.query_params.get("cell_code")
         villages = VILLAGES.get(cell_code, [])
         villages_data = [{"code": v[0], "name": v[1]} for v in villages]
         serializer = VillageSerializer(villages_data, many=True)
         return Response(serializer.data)
+
+
+class SchoolCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating a new school.
+    """
+
+    serializer_class = SchoolCreateSerializer
+
+    @swagger_auto_schema(
+        operation_description="Create a new school",
+        request_body=SchoolCreateSerializer,
+        responses={
+            201: SchoolCreateSerializer,
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "field_name": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    )
+                },
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class SchoolListAPIView(generics.ListAPIView):
+    """
+    API endpoint for retrieving a list of schools.
+
+    This endpoint provides a list of all schools with their codes and names.
+    """
+
+    queryset = School.objects.all()
+    serializer_class = SchoolListSerializer
+
+    @get_school_lists_docs
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+class SchoolListByIndependentLocationAPIView(generics.ListAPIView):
+    """
+    API endpoint for retrieving a list of schools by location using unique codes.
+    Location parameters can be provided independently since codes are unique.
+    """
+
+    serializer_class = SchoolDetailSerializer
+
+    @filter_school_by_location_docs
+    def get(self, request, *args, **kwargs):
+        try:
+            # Get and validate location parameters
+            validate_independent_location_codes(
+                province=request.query_params.get("province"),
+                district=request.query_params.get("district"),
+                sector=request.query_params.get("sector"),
+                cell=request.query_params.get("cell"),
+                village=request.query_params.get("village"),
+            )
+            return super().get(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_queryset(self):
+        queryset = School.objects.all()
+
+        # Apply filters for each location parameter if provided
+        for param in ["province", "district", "sector", "cell", "village"]:
+            value = self.request.query_params.get(param)
+            if value:
+                queryset = queryset.filter(**{f"schoollocation__{param}": value})
+
+        return queryset.distinct()
+
+
+class SchoolListByHierarchicalLocationAPIView(generics.ListAPIView):
+    """
+    API endpoint for retrieving a list of schools by location following hierarchical structure.
+    Location parameters must be provided in hierarchical order (province -> district -> sector -> cell -> village).
+    """
+
+    serializer_class = SchoolDetailSerializer
+
+    @filter_school_by_location_hierarchical_docs
+    def get(self, request, *args, **kwargs):
+        try:
+            # Get and validate location parameters
+            validate_hierarchical_location_codes(
+                province=request.query_params.get("province"),
+                district=request.query_params.get("district"),
+                sector=request.query_params.get("sector"),
+                cell=request.query_params.get("cell"),
+                village=request.query_params.get("village"),
+            )
+            return super().get(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_queryset(self):
+        queryset = School.objects.all()
+
+        # Apply filters for each location parameter if provided
+        for param in ["province", "district", "sector", "cell", "village"]:
+            value = self.request.query_params.get(param)
+            if value:
+                queryset = queryset.filter(**{f"schoollocation__{param}": value})
+
+        return queryset.distinct()
+
+
+class SchoolFilterOptionsAPIView(APIView):
+    """
+    API endpoint that returns all possible filter options for schools.
+    This helps frontend developers understand available choices for filtering schools.
+    """
+
+    @get_school_filters_docs
+    def get(self, request):
+        filter_options = {
+            "ownership_types": [
+                {"value": choice[0], "label": choice[1]}
+                for choice in SchoolChoices.Ownership.choices
+            ],
+            "school_levels": [
+                {"value": choice[0], "label": choice[1]}
+                for choice in SchoolChoices.Level.choices
+            ],
+            "gender_types": [
+                {"value": choice[0], "label": choice[1]}
+                for choice in SchoolChoices.Gender.choices
+            ],
+            "school_types": [
+                {"value": choice[0], "label": choice[1]}
+                for choice in SchoolChoices.Type.choices
+            ],
+            "admission_types": [
+                {"value": choice[0], "label": choice[1]}
+                for choice in SchoolChoices.Admission.choices
+            ],
+            "discipline_types": [
+                {"value": choice[0], "label": choice[1]}
+                for choice in SchoolChoices.Discipline.choices
+            ],
+        }
+
+        return Response(filter_options)
+
+
+class SchoolListByFiltersAPIView(generics.ListAPIView):
+    """
+    API endpoint for retrieving schools filtered by various characteristics.
+    All filter parameters are optional.
+    """
+
+    serializer_class = SchoolDetailSerializer
+
+    @filter_school_docs
+    def get(self, request, *args, **kwargs):
+        try:
+            # Get filter parameters
+            filters = {
+                "ownership": request.query_params.get("ownership"),
+                "level": request.query_params.get("level"),
+                "gender": request.query_params.get("gender"),
+                "school_type": request.query_params.get("type"),
+                "admission": request.query_params.get("admission"),
+                "discipline": request.query_params.get("discipline"),
+            }
+
+            # Validate filters
+            validate_school_filters(**filters)
+
+            return super().get(request, *args, **kwargs)
+
+        except ValidationError as e:
+            return Response({"error": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_queryset(self):
+        queryset = School.objects.all()
+
+        # Apply ownership filter
+        ownership = self.request.query_params.get("ownership")
+        if ownership:
+            queryset = queryset.filter(school_ownership=ownership)
+
+        # Apply level filter
+        level = self.request.query_params.get("level")
+        if level:
+            queryset = queryset.filter(school_level=level)
+
+        # Apply gender filter
+        gender = self.request.query_params.get("gender")
+        if gender:
+            queryset = queryset.filter(school_gender=gender)
+
+        # Apply type filter
+        school_type = self.request.query_params.get("type")
+        if school_type:
+            queryset = queryset.filter(school_type=school_type)
+
+        # Apply admission policy filter
+        admission = self.request.query_params.get("admission")
+        if admission:
+            queryset = queryset.filter(admissionpolicy__admission_policy=admission)
+
+        # Apply discipline policy filter
+        discipline = self.request.query_params.get("discipline")
+        if discipline:
+            queryset = queryset.filter(admissionpolicy__discipline_policy=discipline)
+
+        return queryset.distinct()
 
 
 class SchoolLocationCreateView(generics.CreateAPIView):
@@ -206,36 +346,91 @@ class SchoolLocationCreateView(generics.CreateAPIView):
     sector, cell, and village information.
     """
 
-    queryset = SchoolLocation.objects.all()
     serializer_class = SchoolLocationSerializer
 
+    @create_school_location_docs
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class SchoolDetailView(generics.RetrieveAPIView):
+    """
+    API endpoint for retrieving detailed information about a school.
+    """
+
+    queryset = School.objects.all()
+    serializer_class = SchoolDetailSerializer
+
+    @get_school_details_docs
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+
+class SchoolImageCreateView(generics.CreateAPIView):
+    """
+    API endpoint for uploading multiple images for a school.
+    """
+
+    serializer_class = MultipleSchoolImageSerializer
+
     @swagger_auto_schema(
-        operation_description="Create a new school location",
-        request_body=SchoolLocationSerializer,
+        operation_description="Upload multiple school images",
+        request_body=MultipleSchoolImageSerializer,
         responses={
-            201: openapi.Response(
-                description="School location created successfully",
-                examples={
-                    "application/json": {
-                        "id": 1,
-                        "province_code": "RW.KG",
-                        "district_code": "RW.KG.NY",
-                        "sector_code": "RW.KG.NY.GT",
-                        "cell_code": "RW.KG.NY.GT.AK",
-                        "village_code": "RW.KG.NY.GT.AK.GH",
-                    }
+            201: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "message": openapi.Schema(type=openapi.TYPE_STRING),
+                    "uploaded_images": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_OBJECT),
+                    ),
                 },
             ),
-            400: openapi.Response(
-                description="Bad Request - Invalid data",
-                examples={
-                    "application/json": {
-                        "province_code": ["This field is required."],
-                        "district_code": ["This field is required."],
-                        "sector_code": ["This field is required."],
-                        "cell_code": ["This field is required."],
-                        "village_code": ["This field is required."],
-                    }
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "field_name": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    )
+                },
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instances = serializer.save()  # This returns a list
+
+        return Response(
+            {
+                "message": "Images uploaded successfully",
+                "uploaded_images": SchoolImageSerializer(instances, many=True).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class SchoolFeesCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating school fees.
+    """
+
+    serializer_class = SchoolFeesSerializer
+
+    @swagger_auto_schema(
+        operation_description="Create school fees",
+        request_body=SchoolFeesSerializer,
+        responses={
+            201: SchoolFeesSerializer,
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "field_name": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    )
                 },
             ),
         },
@@ -244,22 +439,109 @@ class SchoolLocationCreateView(generics.CreateAPIView):
         return super().post(request, *args, **kwargs)
 
 
-class DetailedSchoolAPIView(generics.RetrieveAPIView):
-    queryset = School.objects.all()
-    serializer_class = SchoolSerializer
+class SchoolContactCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating school contact details.
+    """
+
+    serializer_class = SchoolContactSerializer
 
     @swagger_auto_schema(
-        operation_description="Get detailed information about a specific school",
-        responses={200: SchoolSerializer, 404: "School not found"},
-        manual_parameters=[
-            openapi.Parameter(
-                "id",
-                openapi.IN_PATH,
-                description="Primary key ID of the school to retrieve",
-                type=openapi.TYPE_INTEGER,
-                required=True,
-            )
-        ],
+        operation_description="Create school contact details",
+        request_body=SchoolContactSerializer,
+        responses={
+            201: SchoolContactSerializer,
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "field_name": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    )
+                },
+            ),
+        },
     )
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class AlumniNetworkCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating alumni network details.
+    """
+
+    serializer_class = AlumniNetworkSerializer
+
+    @swagger_auto_schema(
+        operation_description="Create alumni network details",
+        request_body=AlumniNetworkSerializer,
+        responses={
+            201: AlumniNetworkSerializer,
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "field_name": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    )
+                },
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class SchoolGovernmentDataCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating school government data.
+    """
+
+    serializer_class = SchoolGovernmentDataSerializer
+
+    @swagger_auto_schema(
+        operation_description="Create school government data",
+        request_body=SchoolGovernmentDataSerializer,
+        responses={
+            201: SchoolGovernmentDataSerializer,
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "field_name": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    )
+                },
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+class AdmissionPolicyCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating admission policy details.
+    """
+
+    serializer_class = AdmissionPolicySerializer
+
+    @swagger_auto_schema(
+        operation_description="Create admission policy details",
+        request_body=AdmissionPolicySerializer,
+        responses={
+            201: AdmissionPolicySerializer,
+            400: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "field_name": openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING),
+                    )
+                },
+            ),
+        },
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
