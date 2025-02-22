@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 import re as regex
+from accounts.models import CustomUser
 
 
 class SchoolChoices:
@@ -49,13 +50,19 @@ class SchoolChoices:
         SELF_DISCIPLINE = "SELF", "Self-Disciplined"
         OTHER = "OTHER", "Other"
 
+    class ImageType(models.TextChoices):
+        EXTERIOR = "EXTERIOR", "Exterior"
+        INTERIOR = "INTERIOR", "Interior"
+        FACILITY = "FACILITY", "Facility"
+        OTHER = "OTHER", "Other"
+
 
 class School(models.Model):
     """
     This model represents a school in the database.
     """
 
-    school_id = models.IntegerField(unique=True)
+    school_code = models.IntegerField(unique=True)
     school_name = models.CharField(max_length=500)
     school_type = models.CharField(
         max_length=100, choices=SchoolChoices.Type.choices, blank=True, null=True
@@ -77,10 +84,15 @@ class School(models.Model):
         max_digits=3, decimal_places=2, blank=True, null=True
     )
     review_count = models.IntegerField(default=0)
+    verified = models.BooleanField(default=False)
+    verified_by = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, null=True, blank=True
+    )
     school_description = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.school_name
@@ -101,6 +113,12 @@ class SchoolImage(models.Model):
 
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to=school_image_path)
+    caption = models.CharField(max_length=255, blank=True, null=True)
+    image_type = models.CharField(
+        max_length=15,
+        choices=SchoolChoices.ImageType.choices,
+        default=SchoolChoices.ImageType.OTHER,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -159,6 +177,7 @@ class SchoolContact(models.Model):
 
     school = models.ForeignKey(School, on_delete=models.CASCADE)
     phone_number = models.CharField(max_length=13, blank=True, null=True)
+    whatsapp = models.CharField(max_length=13, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     website = models.URLField(blank=True, null=True)
     social_media = models.JSONField(blank=True, null=True)
