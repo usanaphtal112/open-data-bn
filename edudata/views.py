@@ -2,8 +2,6 @@ from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from .location_data import PROVINCES, DISTRICTS, SECTORS, CELLS, VILLAGES
 from .serializers import (
     ProvinceSerializer,
@@ -42,6 +40,13 @@ from .swagger_docs import (
     filter_school_docs,
     create_school_location_docs,
     get_school_details_docs,
+    create_school_contact_docs,
+    create_alumni_network_docs,
+    create_school_government_data_docs,
+    create_school_docs,
+    create_school_image_docs,
+    create_school_fees_docs,
+    create_school_admission_policy_docs,
 )
 
 
@@ -130,22 +135,7 @@ class SchoolCreateView(generics.CreateAPIView):
 
     serializer_class = SchoolCreateSerializer
 
-    @swagger_auto_schema(
-        operation_description="Create a new school",
-        request_body=SchoolCreateSerializer,
-        responses={
-            201: SchoolCreateSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_school_docs
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -373,31 +363,7 @@ class SchoolImageCreateView(generics.CreateAPIView):
 
     serializer_class = MultipleSchoolImageSerializer
 
-    @swagger_auto_schema(
-        operation_description="Upload multiple school images",
-        request_body=MultipleSchoolImageSerializer,
-        responses={
-            201: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "message": openapi.Schema(type=openapi.TYPE_STRING),
-                    "uploaded_images": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_OBJECT),
-                    ),
-                },
-            ),
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_school_image_docs
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -419,22 +385,7 @@ class SchoolFeesCreateView(generics.CreateAPIView):
 
     serializer_class = SchoolFeesSerializer
 
-    @swagger_auto_schema(
-        operation_description="Create school fees",
-        request_body=SchoolFeesSerializer,
-        responses={
-            201: SchoolFeesSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_school_fees_docs
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -446,22 +397,7 @@ class SchoolContactCreateView(generics.CreateAPIView):
 
     serializer_class = SchoolContactSerializer
 
-    @swagger_auto_schema(
-        operation_description="Create school contact details",
-        request_body=SchoolContactSerializer,
-        responses={
-            201: SchoolContactSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_school_contact_docs
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -473,22 +409,7 @@ class AlumniNetworkCreateView(generics.CreateAPIView):
 
     serializer_class = AlumniNetworkSerializer
 
-    @swagger_auto_schema(
-        operation_description="Create alumni network details",
-        request_body=AlumniNetworkSerializer,
-        responses={
-            201: AlumniNetworkSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_alumni_network_docs
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -500,22 +421,7 @@ class SchoolGovernmentDataCreateView(generics.CreateAPIView):
 
     serializer_class = SchoolGovernmentDataSerializer
 
-    @swagger_auto_schema(
-        operation_description="Create school government data",
-        request_body=SchoolGovernmentDataSerializer,
-        responses={
-            201: SchoolGovernmentDataSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_school_government_data_docs
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -527,21 +433,6 @@ class AdmissionPolicyCreateView(generics.CreateAPIView):
 
     serializer_class = AdmissionPolicySerializer
 
-    @swagger_auto_schema(
-        operation_description="Create admission policy details",
-        request_body=AdmissionPolicySerializer,
-        responses={
-            201: AdmissionPolicySerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_school_admission_policy_docs
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)

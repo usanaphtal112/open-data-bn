@@ -2,8 +2,6 @@ from rest_framework import serializers, status, generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from .models import (
@@ -34,27 +32,55 @@ from .Serializers import (
     FacilityImageBulkSerializer,
     FacilityImageSerializer,
 )
+from .swagger_docs import (
+    get_facility_lists,
+    get_facility_details,
+    create_facility_services_docs,
+    get_facility_services_details_docs,
+    get_facility_resources_details_docs,
+    get_facility_advanceddata_details_docs,
+    get_facility_contactinfo_details_docs,
+    get_facility_fees_details_docs,
+    get_facility_governmentdata_details_docs,
+    get_facility_images_details_docs,
+    get_facility_location_details_docs,
+    get_facility_population_details_docs,
+    create_facility_governmentdata_docs,
+    create_facility_advanceddata_docs,
+    create_facility_contactinfo_docs,
+    create_facility_fees_docs,
+    create_facility_population_docs,
+    create_facility_resources_docs,
+    create_facility_location_docs,
+    create_health_facility_docs,
+    create_facility_images_docs,
+    update_facility_advanceddata_docs,
+    update_facility_contactinfo_docs,
+    update_facility_fees_docs,
+    update_facility_governmentdata_docs,
+    update_facility_images_docs,
+    update_facility_location_docs,
+    update_facility_population_docs,
+    update_facility_resources_docs,
+    update_facility_services_docs,
+    update_health_facility_docs,
+    delete_health_facility_docs,
+    delete_facility_advanceddata_docs,
+    delete_facility_contactinfo_docs,
+    delete_facility_location_docs,
+    delete_facility_population_docs,
+    delete_facility_advanceddata_docs,
+    delete_facility_services_docs,
+    delete_facility_resources_docs,
+    delete_facility_fees_docs,
+    delete_facility_governmentdata_docs,
+)
 
 
 class HealthFacilityCreateView(APIView):
     """API view for creating health facilities"""
 
-    @swagger_auto_schema(
-        operation_description="Create a new health facility",
-        request_body=HealthFacilityCreateSerializer,
-        responses={
-            201: HealthFacilityCreateSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @create_health_facility_docs
     def post(self, request, *args, **kwargs):
         """Create a new health facility"""
         serializer = HealthFacilityCreateSerializer(
@@ -77,93 +103,14 @@ class HealthFacilityListView(generics.ListAPIView):
     )
     serializer_class = HealthFacilityListSerializer
 
-    @swagger_auto_schema(
-        operation_description="Retrieve a list of health facilities with summarized details.",
-        responses={
-            200: openapi.Response(
-                description="List of health facilities with limited details.",
-                schema=openapi.Schema(
-                    type=openapi.TYPE_ARRAY,
-                    items=openapi.Schema(
-                        type=openapi.TYPE_OBJECT,
-                        properties={
-                            "facility_name": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="Name of the health facility.",
-                            ),
-                            "facility_type": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="Type of the health facility.",
-                            ),
-                            "level": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="Level of the health facility.",
-                            ),
-                            "ownership": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="Ownership type of the facility.",
-                            ),
-                            "average_rating": openapi.Schema(
-                                type=openapi.TYPE_NUMBER,
-                                format=openapi.FORMAT_FLOAT,
-                                description="Average rating based on user reviews.",
-                            ),
-                            "verified": openapi.Schema(
-                                type=openapi.TYPE_BOOLEAN,
-                                description="Indicates if the facility is verified.",
-                            ),
-                            "address": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="Physical address of the facility.",
-                            ),
-                            "service_name": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="Main service offered by the facility.",
-                            ),
-                            "phone": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="Primary contact phone number.",
-                            ),
-                            "whatsapp": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                description="WhatsApp contact number.",
-                            ),
-                            "review_count": openapi.Schema(
-                                type=openapi.TYPE_INTEGER,
-                                description="Number of users who have rated this facility.",
-                            ),
-                            "image_url": openapi.Schema(
-                                type=openapi.TYPE_STRING,
-                                format=openapi.FORMAT_URI,
-                                description="URL of the facility's main image.",
-                            ),
-                        },
-                    ),
-                ),
-            )
-        },
-    )
+    @get_facility_lists
     def get(self, request, *args, **kwargs):
         """List all health facilities with summarized details"""
         return super().get(request, *args, **kwargs)
 
 
 class HealthFacilityDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get details of a specific health facility",
-        responses={
-            200: HealthFacilitySerializer,
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "error": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @get_facility_details
     def get(self, request, facility_id):
         """Get a specific health facility by ID"""
         try:
@@ -192,31 +139,7 @@ class HealthFacilityDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update a health facility",
-        request_body=HealthFacilityUpdateSerializer,
-        responses={
-            200: HealthFacilityUpdateSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "error": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @update_health_facility_docs
     def put(self, request, facility_id):
         """Update a health facility"""
         try:
@@ -231,21 +154,7 @@ class HealthFacilityDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "error": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-        },
-    )
+    @delete_health_facility_docs
     def delete(self, request, facility_id):
         """Delete a health facility"""
         facility = get_object_or_404(HealthFacility, id=facility_id)
@@ -254,31 +163,7 @@ class HealthFacilityDetailView(APIView):
 
 
 class LocationCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create location details for a health facility",
-        request_body=LocationSerializer,
-        responses={
-            201: LocationSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "error": openapi.Schema(
-                        type=openapi.TYPE_STRING,
-                        description="Health facility not found",
-                    )
-                },
-            ),
-        },
-    )
+    @create_facility_location_docs
     def post(self, request, facility_id):
         """Create location details for a specific health facility"""
         try:
@@ -296,13 +181,7 @@ class LocationCreateView(APIView):
 
 
 class LocationDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get location details for a health facility",
-        responses={
-            200: LocationSerializer,
-            404: "Health facility or location not found",
-        },
-    )
+    @get_facility_location_details_docs
     def get(self, request, facility_id):
         """Get location details for a specific health facility"""
         try:
@@ -320,31 +199,7 @@ class LocationDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update location details for a health facility",
-        request_body=LocationSerializer,
-        responses={
-            200: LocationSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "error": openapi.Schema(
-                        type=openapi.TYPE_STRING,
-                        description="Health facility or location not found",
-                    )
-                },
-            ),
-        },
-    )
+    @update_facility_location_docs
     def put(self, request, facility_id):
         """Update location details for a specific health facility"""
         try:
@@ -366,21 +221,7 @@ class LocationDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete location details for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "error": openapi.Schema(
-                        type=openapi.TYPE_STRING,
-                        description="Health facility or location not found",
-                    )
-                },
-            ),
-        },
-    )
+    @delete_facility_location_docs
     def delete(self, request, facility_id):
         """Delete location details for a specific health facility"""
         try:
@@ -400,26 +241,7 @@ class LocationDetailView(APIView):
 
 
 class ServicesCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create services information for a health facility",
-        request_body=ServicesSerializer,
-        responses={
-            201: ServicesSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @create_facility_services_docs
     def post(self, request, facility_id):
         """Create services information for a specific health facility"""
         try:
@@ -437,13 +259,7 @@ class ServicesCreateView(APIView):
 
 
 class HealthFacilityServicesDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get services information for a health facility",
-        responses={
-            200: ServicesSerializer,
-            404: "Health facility or services information not found",
-        },
-    )
+    @get_facility_services_details_docs
     def get(self, request, facility_id):
         """Get services information for a specific health facility"""
         try:
@@ -461,15 +277,7 @@ class HealthFacilityServicesDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update services information for a health facility",
-        request_body=ServicesSerializer,
-        responses={
-            200: ServicesSerializer,
-            400: "Bad Request",
-            404: "Health facility or services information not found",
-        },
-    )
+    @update_facility_services_docs
     def put(self, request, facility_id):
         """Update services information for a specific health facility"""
         try:
@@ -491,13 +299,7 @@ class HealthFacilityServicesDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete services information for a health facility",
-        responses={
-            204: "No content",
-            404: "Health facility or services information not found",
-        },
-    )
+    @delete_facility_services_docs
     def delete(self, request, facility_id):
         """Delete services information for a specific health facility"""
         try:
@@ -517,26 +319,7 @@ class HealthFacilityServicesDetailView(APIView):
 
 
 class FacilityResourcesCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create resources information for a health facility",
-        request_body=ResourcesSerializer,
-        responses={
-            201: ResourcesSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @create_facility_resources_docs
     def post(self, request, facility_id):
         """Create resources information for a specific health facility"""
         try:
@@ -563,13 +346,7 @@ class FacilityResourcesCreateView(APIView):
 
 
 class FacilityResourcesDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get resources details for a health facility",
-        responses={
-            200: ResourcesSerializer,
-            404: "Health facility or resources not found",
-        },
-    )
+    @get_facility_resources_details_docs
     def get(self, request, facility_id):
         """Get resources details for a specific health facility"""
         try:
@@ -587,26 +364,7 @@ class FacilityResourcesDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update resources information for a health facility",
-        request_body=ResourcesSerializer,
-        responses={
-            200: ResourcesSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @update_facility_resources_docs
     def put(self, request, facility_id):
         """Update resources information for a specific health facility"""
         try:
@@ -628,16 +386,7 @@ class FacilityResourcesDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete resources information for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @delete_facility_resources_docs
     def delete(self, request, facility_id):
         """Delete resources information for a specific health facility"""
         try:
@@ -657,26 +406,7 @@ class FacilityResourcesDetailView(APIView):
 
 
 class ContactInformationCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create contact information for a health facility",
-        request_body=ContactSerializer,
-        responses={
-            201: ContactSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @create_facility_contactinfo_docs
     def post(self, request, facility_id):
         """Create contact information for a specific health facility"""
         try:
@@ -694,13 +424,7 @@ class ContactInformationCreateView(APIView):
 
 
 class ContactInformationDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get contact information for a health facility",
-        responses={
-            200: ContactSerializer,
-            404: "Health facility or contact information not found",
-        },
-    )
+    @get_facility_contactinfo_details_docs
     def get(self, request, facility_id):
         """Get contact information for a specific health facility"""
         try:
@@ -718,26 +442,7 @@ class ContactInformationDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update contact information for a health facility",
-        request_body=ContactSerializer,
-        responses={
-            200: ContactSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @update_facility_contactinfo_docs
     def put(self, request, facility_id):
         """Update contact information for a specific health facility"""
         try:
@@ -761,16 +466,7 @@ class ContactInformationDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete contact information for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @delete_facility_contactinfo_docs
     def delete(self, request, facility_id):
         """Delete contact information for a specific health facility"""
         try:
@@ -790,26 +486,7 @@ class ContactInformationDetailView(APIView):
 
 
 class HealthFacilityPopulationCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create population statistics for a health facility",
-        request_body=PopulationStatsSerializer,
-        responses={
-            201: PopulationStatsSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @create_facility_population_docs
     def post(self, request, facility_id):
         """Create population statistics for a specific health facility"""
         try:
@@ -827,13 +504,7 @@ class HealthFacilityPopulationCreateView(APIView):
 
 
 class HealthFacilityPopulationDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get population statistics for a health facility",
-        responses={
-            200: PopulationStatsSerializer,
-            404: "Health facility or population statistics not found",
-        },
-    )
+    @get_facility_population_details_docs
     def get(self, request, facility_id):
         """Get population statistics for a specific health facility"""
         try:
@@ -851,26 +522,7 @@ class HealthFacilityPopulationDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update population statistics for a health facility",
-        request_body=PopulationStatsSerializer,
-        responses={
-            200: PopulationStatsSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @update_facility_population_docs
     def put(self, request, facility_id, population_id):
         """Update population statistics for a specific health facility"""
         try:
@@ -896,16 +548,7 @@ class HealthFacilityPopulationDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete population statistics for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @delete_facility_population_docs
     def delete(self, request, facility_id, population_id):
         """Delete population statistics for a specific health facility"""
         try:
@@ -927,26 +570,7 @@ class HealthFacilityPopulationDetailView(APIView):
 
 
 class FacilityFeesCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create fee information for a health facility",
-        request_body=FacilityFeesSerializer,
-        responses={
-            201: FacilityFeesSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @create_facility_fees_docs
     def post(self, request, facility_id):
         """Create fee information for a specific health facility"""
         try:
@@ -964,13 +588,7 @@ class FacilityFeesCreateView(APIView):
 
 
 class FacilityFeesDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get fee information for a health facility",
-        responses={
-            200: FacilityFeesSerializer,
-            404: "Health facility or fee information not found",
-        },
-    )
+    @get_facility_fees_details_docs
     def get(self, request, facility_id):
         """Get fee information for a specific health facility"""
         try:
@@ -988,26 +606,7 @@ class FacilityFeesDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update fee information for a health facility",
-        request_body=FacilityFeesSerializer,
-        responses={
-            200: FacilityFeesSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @update_facility_fees_docs
     def put(self, request, facility_id):
         """Update fee information for a specific health facility"""
         try:
@@ -1029,16 +628,7 @@ class FacilityFeesDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete fee information for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @delete_facility_fees_docs
     def delete(self, request, facility_id):
         """Delete fee information for a specific health facility"""
         try:
@@ -1058,26 +648,7 @@ class FacilityFeesDetailView(APIView):
 
 
 class GovernmentDataCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create government data for a health facility",
-        request_body=GovernmentDataSerializer,
-        responses={
-            201: GovernmentDataSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @create_facility_governmentdata_docs
     def post(self, request, facility_id):
         """Create government data for a specific health facility"""
         try:
@@ -1095,13 +666,7 @@ class GovernmentDataCreateView(APIView):
 
 
 class GovernmentDataDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get government data for a health facility",
-        responses={
-            200: GovernmentDataSerializer,
-            404: "Health facility or government data not found",
-        },
-    )
+    @get_facility_governmentdata_details_docs
     def get(self, request, facility_id):
         """Get government data for a specific health facility"""
         try:
@@ -1119,26 +684,7 @@ class GovernmentDataDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update government data for a health facility",
-        request_body=GovernmentDataSerializer,
-        responses={
-            200: GovernmentDataSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @update_facility_governmentdata_docs
     def put(self, request, facility_id):
         """Update government data for a specific health facility"""
         try:
@@ -1162,16 +708,7 @@ class GovernmentDataDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete government data for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @delete_facility_governmentdata_docs
     def delete(self, request, facility_id):
         """Delete government data for a specific health facility"""
         try:
@@ -1191,26 +728,7 @@ class GovernmentDataDetailView(APIView):
 
 
 class AdvancedFacilityDataCreateView(APIView):
-    @swagger_auto_schema(
-        operation_description="Create advanced data for a health facility",
-        request_body=AdvancedDataSerializer,
-        responses={
-            201: AdvancedDataSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @create_facility_advanceddata_docs
     def post(self, request, facility_id):
         """Create advanced data for a specific health facility"""
         try:
@@ -1228,13 +746,7 @@ class AdvancedFacilityDataCreateView(APIView):
 
 
 class AdvancedFacilityDataDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get advanced data for a health facility",
-        responses={
-            200: AdvancedDataSerializer,
-            404: "Health facility or advanced data not found",
-        },
-    )
+    @get_facility_advanceddata_details_docs
     def get(self, request, facility_id):
         """Get advanced data for a specific health facility"""
         try:
@@ -1252,26 +764,7 @@ class AdvancedFacilityDataDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update advanced data for a health facility",
-        request_body=AdvancedDataSerializer,
-        responses={
-            200: AdvancedDataSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @update_facility_advanceddata_docs
     def put(self, request, facility_id):
         """Update advanced data for a specific health facility"""
         try:
@@ -1295,16 +788,7 @@ class AdvancedFacilityDataDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete advanced data for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @delete_facility_advanceddata_docs
     def delete(self, request, facility_id):
         """Delete advanced data for a specific health facility"""
         try:
@@ -1326,15 +810,7 @@ class AdvancedFacilityDataDetailView(APIView):
 class FacilityImageBulkCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
-    @swagger_auto_schema(
-        operation_description="Bulk upload images for a health facility",
-        request_body=FacilityImageBulkSerializer(many=True),
-        responses={
-            201: FacilityImageBulkSerializer(many=True),
-            400: "Bad Request",
-            404: "Health Facility Not Found",
-        },
-    )
+    @create_facility_images_docs
     def post(self, request, facility_id):
         """Bulk upload images for a specific health facility"""
         try:
@@ -1368,13 +844,7 @@ class FacilityImageBulkCreateView(APIView):
 
 
 class FacilityImageDetailView(APIView):
-    @swagger_auto_schema(
-        operation_description="Get an image for a health facility",
-        responses={
-            200: FacilityImageSerializer,
-            404: "Health facility or image not found",
-        },
-    )
+    @get_facility_images_details_docs
     def get(self, request, facility_id, image_id):
         """Get an image for a specific health facility"""
         try:
@@ -1392,26 +862,7 @@ class FacilityImageDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @swagger_auto_schema(
-        operation_description="Update an image for a health facility",
-        request_body=FacilityImageSerializer,
-        responses={
-            200: FacilityImageSerializer,
-            400: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={
-                    "field_name": openapi.Schema(
-                        type=openapi.TYPE_ARRAY,
-                        items=openapi.Schema(type=openapi.TYPE_STRING),
-                    )
-                },
-            ),
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @update_facility_images_docs
     def put(self, request, facility_id, image_id):
         """Update an image for a specific health facility"""
         try:
@@ -1433,16 +884,7 @@ class FacilityImageDetailView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
-    @swagger_auto_schema(
-        operation_description="Delete an image for a health facility",
-        responses={
-            204: "No content",
-            404: openapi.Schema(
-                type=openapi.TYPE_OBJECT,
-                properties={"error": openapi.Schema(type=openapi.TYPE_STRING)},
-            ),
-        },
-    )
+    @delete_facility_governmentdata_docs
     def delete(self, request, facility_id, image_id):
         """Delete an image for a specific health facility"""
         try:

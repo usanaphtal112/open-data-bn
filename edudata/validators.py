@@ -1,6 +1,7 @@
 from rest_framework.exceptions import ValidationError
 from .location_data import PROVINCES, DISTRICTS, SECTORS, CELLS, VILLAGES
 from .models import SchoolChoices
+from datetime import datetime
 
 
 def validate_independent_location_codes(
@@ -154,3 +155,82 @@ def validate_school_filters(
         raise ValidationError(errors)
 
     return True
+
+
+def validate_social_media(social_media):
+    """
+    Validates social media JSON structure.
+    Expected format:
+    {
+        "twitter": "https://twitter.com/...",
+        "facebook": "https://facebook.com/...",
+        "instagram": "https://instagram.com/...",
+        "linkedin": "https://linkedin.com/...",
+        "youtube": "https://youtube.com/..."
+    }
+    """
+    if not isinstance(social_media, dict):
+        raise ValidationError("Social media must be a dictionary")
+
+    allowed_platforms = ["twitter", "facebook", "instagram", "linkedin", "youtube"]
+
+    for platform, url in social_media.items():
+        if platform not in allowed_platforms:
+            raise ValidationError(f"Invalid social media platform: {platform}")
+        if not isinstance(url, str) or not url.startswith("https://"):
+            raise ValidationError(f"Invalid URL for {platform}")
+
+
+def validate_notable_alumni(alumni_list):
+    """
+    Validates notable alumni JSON structure.
+    Expected format:
+    [
+        {
+            "name": "string",
+            "achievement": "string"
+        }
+    ]
+    """
+    if not isinstance(alumni_list, list):
+        raise ValidationError("Notable alumni must be a list")
+
+    for alumni in alumni_list:
+        if not isinstance(alumni, dict):
+            raise ValidationError("Each alumni entry must be a dictionary")
+
+        required_fields = ["name", "achievement"]
+        for field in required_fields:
+            if field not in alumni:
+                raise ValidationError(
+                    f"Missing required field '{field}' in alumni entry"
+                )
+            if not isinstance(alumni[field], str):
+                raise ValidationError(f"Field '{field}' must be a string")
+
+
+def validate_inspection_record(records):
+    """
+    Validates inspection record JSON structure.
+    Expected format:
+    [
+        {
+            "date": "YYYY-MM-DD",
+            "result": "string"
+        }
+    ]
+    """
+    if not isinstance(records, list):
+        raise ValidationError("Inspection records must be a list")
+
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValidationError("Each inspection record must be a dictionary")
+
+        if "date" not in record or "result" not in record:
+            raise ValidationError("Each record must have 'date' and 'result' fields")
+
+        try:
+            datetime.strptime(record["date"], "%Y-%m-%d")
+        except ValueError:
+            raise ValidationError("Date must be in YYYY-MM-DD format")

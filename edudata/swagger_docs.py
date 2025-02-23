@@ -4,8 +4,45 @@ from .serializers import (
     SchoolDetailSerializer,
     SchoolLocationSerializer,
     SchoolListSerializer,
+    SchoolCreateSerializer,
+    MultipleSchoolImageSerializer,
+    SchoolFeesSerializer,
+    AdmissionPolicySerializer,
 )
 from .models import SchoolChoices
+
+
+# JSON field examples for School-related models
+SCHOOL_JSON_EXAMPLES = {
+    "social_media": {
+        "summary": "Social media links for the school",
+        "example": {
+            "twitter": "https://twitter.com/LyceeDeKigali",
+            "youtube": "https://youtube.com/LyceeDeKigali",
+            "facebook": "https://facebook.com/LyceeDeKigali",
+            "linkedin": "https://linkedin.com/LyceeDeKigali",
+            "instagram": "https://instagram.com/LyceeDeKigali",
+        },
+        "description": "Dictionary containing social media platform URLs. All URLs must start with 'https://'.",
+    },
+    "notable_alumni": {
+        "summary": "List of notable alumni and their achievements",
+        "example": [
+            {"name": "Jean de Dieu Uwihanganye", "achievement": "Renowned Politician"},
+            {"name": "Marie Claire Uwimana", "achievement": "Award-winning Journalist"},
+        ],
+        "description": "List of objects containing alumni names and their achievements",
+    },
+    "inspection_record": {
+        "summary": "School inspection records",
+        "example": [
+            {"date": "2022-05-01", "result": "Compliant"},
+            {"date": "2021-04-15", "result": "Compliant"},
+        ],
+        "description": "List of inspection records with dates in YYYY-MM-DD format",
+    },
+}
+
 
 get_province_docs = swagger_auto_schema(
     operation_description="Get list of all provinces",
@@ -312,7 +349,29 @@ create_school_location_docs = swagger_auto_schema(
 
 get_school_details_docs = swagger_auto_schema(
     operation_description="Get detailed information about a specific school",
-    responses={200: SchoolDetailSerializer, 404: "School not found"},
+    responses={
+        200: openapi.Response(
+            description="School details retrieved successfully",
+            examples={
+                "application/json": {
+                    "contact": {
+                        "social_media": SCHOOL_JSON_EXAMPLES["social_media"]["example"]
+                    },
+                    "alumni": {
+                        "notable_alumni": SCHOOL_JSON_EXAMPLES["notable_alumni"][
+                            "example"
+                        ]
+                    },
+                    "government_data": {
+                        "inspection_record": SCHOOL_JSON_EXAMPLES["inspection_record"][
+                            "example"
+                        ]
+                    },
+                }
+            },
+        ),
+        404: "School not found",
+    },
     manual_parameters=[
         openapi.Parameter(
             "id",
@@ -322,4 +381,163 @@ get_school_details_docs = swagger_auto_schema(
             required=True,
         )
     ],
+)
+
+create_school_docs = swagger_auto_schema(
+    operation_description="Create a new school",
+    request_body=SchoolCreateSerializer,
+    responses={
+        201: SchoolCreateSerializer,
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "field_name": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_STRING),
+                )
+            },
+        ),
+    },
+)
+# School Contact Create Documentation
+create_school_contact_docs = swagger_auto_schema(
+    operation_description="Create contact information for a school",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["school", "phone_number"],
+        properties={
+            "school": openapi.Schema(type=openapi.TYPE_INTEGER),
+            "phone_number": openapi.Schema(type=openapi.TYPE_STRING, max_length=13),
+            "whatsapp": openapi.Schema(type=openapi.TYPE_STRING, max_length=13),
+            "email": openapi.Schema(type=openapi.TYPE_STRING, format="email"),
+            "website": openapi.Schema(type=openapi.TYPE_STRING, format="uri"),
+            "social_media": openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                description="Social media links dictionary",
+                example=SCHOOL_JSON_EXAMPLES["social_media"]["example"],
+                properties={
+                    "twitter": openapi.Schema(type=openapi.TYPE_STRING, format="uri"),
+                    "facebook": openapi.Schema(type=openapi.TYPE_STRING, format="uri"),
+                    "instagram": openapi.Schema(type=openapi.TYPE_STRING, format="uri"),
+                    "linkedin": openapi.Schema(type=openapi.TYPE_STRING, format="uri"),
+                    "youtube": openapi.Schema(type=openapi.TYPE_STRING, format="uri"),
+                },
+            ),
+        },
+    ),
+    responses={201: "Contact created successfully", 400: "Invalid input data"},
+)
+
+# Alumni Network Create Documentation
+create_alumni_network_docs = swagger_auto_schema(
+    operation_description="Create alumni network information for a school",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["school"],
+        properties={
+            "school": openapi.Schema(type=openapi.TYPE_INTEGER),
+            "notable_alumni": openapi.Schema(
+                type=openapi.TYPE_ARRAY,
+                description="List of notable alumni and their achievements",
+                example=SCHOOL_JSON_EXAMPLES["notable_alumni"]["example"],
+                items=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "name": openapi.Schema(type=openapi.TYPE_STRING),
+                        "achievement": openapi.Schema(type=openapi.TYPE_STRING),
+                    },
+                ),
+            ),
+        },
+    ),
+    responses={201: "Alumni network created successfully", 400: "Invalid input data"},
+)
+
+# School Government Data Create Documentation
+create_school_government_data_docs = swagger_auto_schema(
+    operation_description="Create government data for a school",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["school"],
+        properties={
+            "school": openapi.Schema(type=openapi.TYPE_INTEGER),
+            "government_supported": openapi.Schema(type=openapi.TYPE_BOOLEAN),
+            "registration_date": openapi.Schema(
+                type=openapi.TYPE_STRING, format="date"
+            ),
+            "inspection_record": openapi.Schema(
+                type=openapi.TYPE_ARRAY,
+                description="List of inspection records",
+                example=SCHOOL_JSON_EXAMPLES["inspection_record"]["example"],
+                items=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        "date": openapi.Schema(type=openapi.TYPE_STRING, format="date"),
+                        "result": openapi.Schema(type=openapi.TYPE_STRING),
+                    },
+                ),
+            ),
+        },
+    ),
+    responses={201: "Government data created successfully", 400: "Invalid input data"},
+)
+
+create_school_image_docs = swagger_auto_schema(
+    operation_description="Upload multiple school images",
+    request_body=MultipleSchoolImageSerializer,
+    responses={
+        201: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "message": openapi.Schema(type=openapi.TYPE_STRING),
+                "uploaded_images": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_OBJECT),
+                ),
+            },
+        ),
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "field_name": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_STRING),
+                )
+            },
+        ),
+    },
+)
+
+create_school_fees_docs = swagger_auto_schema(
+    operation_description="Create school fees",
+    request_body=SchoolFeesSerializer,
+    responses={
+        201: SchoolFeesSerializer,
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "field_name": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_STRING),
+                )
+            },
+        ),
+    },
+)
+
+create_school_admission_policy_docs = swagger_auto_schema(
+    operation_description="Create admission policy details",
+    request_body=AdmissionPolicySerializer,
+    responses={
+        201: AdmissionPolicySerializer,
+        400: openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                "field_name": openapi.Schema(
+                    type=openapi.TYPE_ARRAY,
+                    items=openapi.Schema(type=openapi.TYPE_STRING),
+                )
+            },
+        ),
+    },
 )

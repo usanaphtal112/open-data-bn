@@ -11,6 +11,11 @@ from .models import (
     SchoolChoices,
 )
 from .location_data import PROVINCES, DISTRICTS, SECTORS, CELLS, VILLAGES
+from .validators import (
+    validate_social_media,
+    validate_notable_alumni,
+    validate_inspection_record,
+)
 
 
 class ProvinceSerializer(serializers.Serializer):
@@ -206,18 +211,30 @@ class SchoolFeesSerializer(serializers.ModelSerializer):
 
 
 class SchoolContactSerializer(serializers.ModelSerializer):
+    def validate_social_media(self, value):
+        validate_social_media(value)
+        return value
+
     class Meta:
         model = SchoolContact
         fields = "__all__"
 
 
 class AlumniNetworkSerializer(serializers.ModelSerializer):
+    def validate_notable_alumni(self, value):
+        validate_notable_alumni(value)
+        return value
+
     class Meta:
         model = AlumniNetwork
         fields = "__all__"
 
 
 class SchoolGovernmentDataSerializer(serializers.ModelSerializer):
+    def validate_inspection_record(self, value):
+        validate_inspection_record(value)
+        return value
+
     class Meta:
         model = SchoolGovernmentData
         fields = "__all__"

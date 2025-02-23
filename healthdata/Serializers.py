@@ -13,6 +13,11 @@ from .models import (
     AdvancedFacilityData,
 )
 from edudata.location_data import PROVINCES, DISTRICTS, SECTORS, CELLS, VILLAGES
+from .validators import (
+    validate_special_programs,
+    validate_performance_metrics,
+    validate_laboratories,
+)
 
 
 class HealthFacilityListSerializer(serializers.ModelSerializer):
@@ -226,6 +231,14 @@ class AdvancedDataSerializer(serializers.ModelSerializer):
 class ServicesSerializer(serializers.ModelSerializer):
     offered_services = ServiceDetailSerializer(many=True)  # Nested serializer
 
+    def validate_special_programs(self, value):
+        validate_special_programs(value)
+        return value
+
+    def validate_performance_metrics(self, value):
+        validate_performance_metrics(value)
+        return value
+
     class Meta:
         model = HealthFacilityServices
         exclude = ["facility"]
@@ -247,8 +260,11 @@ class ServicesSerializer(serializers.ModelSerializer):
 
 
 class ResourcesSerializer(serializers.ModelSerializer):
+    def validate_laboratories(self, value):
+        validate_laboratories(value)
+        return value
+
     class Meta:
-        model = FacilityResources
         model = FacilityResources
         fields = [
             "facility",
