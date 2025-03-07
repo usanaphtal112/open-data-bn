@@ -6,7 +6,9 @@ from .models import CustomUser
 class CustomUserSerializer(serializers.Serializer):
     email = serializers.CharField(required=False)
     first_name = serializers.CharField(required=False)
-    middle_name = serializers.CharField(required=False)
+    middle_name = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
     last_name = serializers.CharField(required=False)
     password = serializers.CharField(required=False, write_only=True)
     confirm_password = serializers.CharField(required=False, write_only=True)
