@@ -11,7 +11,8 @@ else
 fi
 
 echo "Building Project Packages........"
-pip3 install -r requirements.txt
+python3.12 -m pip install --upgrade pip
+pip3.12 install -r requirements.txt
 
 echo "Migrating the Databases........."
 # python3 manage.py makemigrations --noinput
