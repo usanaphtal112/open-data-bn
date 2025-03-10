@@ -2,15 +2,15 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model, authenticate
-from django.utils.timezone import now
-from datetime import timedelta
-from .models import BlacklistedToken
+from django.conf import settings
+import secrets
+import hashlib
 from .serializers import CustomUserSerializer, LoginSerializer, GetCustomUserSerializer
 from .validation import is_email_already_registered
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.permissions import IsAuthenticated
-from django.db import transaction
 from .swagger_docs import (
     register_api_docs,
     login_api_docs,
@@ -97,53 +97,147 @@ class LoginAPIView(APIView):
         except serializers.ValidationError as e:
             return Response(e.detail, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Generate token
-        token = RefreshToken.for_user(user)
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
 
-        return Response(
+        # Generate fingerprint
+        fingerprint = secrets.token_hex(32)
+        fingerprint_hash = hashlib.sha256(fingerprint.encode()).hexdigest()
+
+        # Add fingerprint hash to the token payload
+        refresh["fingerprint"] = fingerprint_hash
+        access_token = refresh.access_token
+
+        # Set the refresh token in a secure HttpOnly cookie
+        response = Response(
             {
-                "access_token": str(token.access_token),
+                "access_token": str(access_token),
+                "token_type": "Bearer",
                 # "user": {
-                #     "email": user.email,
-                #     "first_name": user.first_name,
-                #     "last_name": user.last_name,
+                #    "email": user.email,
+                #    "first_name": user.first_name,
+                #    "last_name": user.last_name,
                 # },
             },
             status=status.HTTP_200_OK,
         )
+        # Set refresh token as HttpOnly cookie
+        response.set_cookie(
+            "refresh_token",
+            str(refresh),
+            httponly=True,
+            secure=settings.SESSION_COOKIE_SECURE,
+            samesite="strict",
+            max_age=60 * 60 * 24 * 7,
+            path="/",  # Allow all routes to access this cookie
+        )
+
+        # Set fingerprint as HttpOnly cookie
+        response.set_cookie(
+            "fingerprint",
+            fingerprint,
+            httponly=True,
+            secure=settings.SESSION_COOKIE_SECURE,
+            samesite="strict",
+            max_age=60 * 60 * 24 * 7,
+            path="/",  # Allow all routes to access this cookie
+        )
+
+        return response
+
+
+class RefreshTokenAPIView(APIView):
+    """API endpoint for refreshing access tokens."""
+
+    # @refresh_token_api_docs
+    def post(self, request):
+        # Get refresh token from cookie
+        refresh_token = request.COOKIES.get("refresh_token")
+        fingerprint = request.COOKIES.get("fingerprint")
+
+        if not refresh_token or not fingerprint:
+            return Response(
+                {"error": "Refresh token or fingerprint missing"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            # Verify the refresh token
+            refresh = RefreshToken(refresh_token)
+
+            # Verify the fingerprint
+            if "fingerprint" not in refresh:
+                return Response(
+                    {"error": "Invalid refresh token"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            stored_fingerprint_hash = refresh["fingerprint"]
+            current_fingerprint_hash = hashlib.sha256(fingerprint.encode()).hexdigest()
+
+            if stored_fingerprint_hash != current_fingerprint_hash:
+                return Response(
+                    {"error": "Invalid fingerprint"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            # Generate new tokens
+            access_token = refresh.access_token
+
+            # Return new access token
+            return Response(
+                {
+                    "access_token": str(access_token),
+                    "token_type": "bearer",
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except TokenError:
+            return Response(
+                {"error": "Invalid or expired refresh token"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
 
 class LogoutAPIView(APIView):
     """
     API endpoint for user logout.
-    Blacklists the access token to prevent further use.
+    Blacklists the refresh token to prevent further use.
     """
 
     permission_classes = [IsAuthenticated]
 
     @logout_api_docs
     def post(self, request):
-        auth_header = request.headers.get("Authorization")
+        refresh_token = request.COOKIES.get("refresh_token")
 
-        if not auth_header or not auth_header.startswith("Bearer "):
+        if not refresh_token:
             return Response(
-                {"error": "No valid token found"},
-                status=status.HTTP_401_UNAUTHORIZED,
+                {"error": "No refresh token found"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        token = auth_header.split(" ")[1]
+        try:
+            # Get token and blacklist it
+            token = RefreshToken(refresh_token)
+            token.blacklist()
 
-        with transaction.atomic():
-            BlacklistedToken.objects.create(token=token, blacklisted_at=now())
+            # Create response and clear cookies
+            response = Response(
+                {"message": "Successfully logged out"}, status=status.HTTP_200_OK
+            )
 
-            # Delete tokens older than 3 months
-            expiry_date = now() - timedelta(days=90)
-            BlacklistedToken.objects.filter(blacklisted_at__lt=expiry_date).delete()
+            # Clear the cookies
+            response.delete_cookie("refresh_token", path="/")
+            response.delete_cookie("fingerprint", path="/")
 
-        return Response(
-            {"message": "Successfully logged out"},
-            status=status.HTTP_200_OK,
-        )
+            return response
+
+        except TokenError:
+            return Response(
+                {"error": "Invalid or expired token"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class CustomUserListAPIView(APIView):
@@ -153,4 +247,13 @@ class CustomUserListAPIView(APIView):
     def get(self, request):
         users = User.objects.all()
         serializer = GetCustomUserSerializer(users, many=True)
+        return Response(serializer.data, status=200)
+
+
+class GetUserProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = GetCustomUserSerializer(user)
         return Response(serializer.data, status=200)

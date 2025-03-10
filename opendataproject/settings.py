@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # third party apps
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_yasg",
     # local apps
@@ -59,8 +61,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # Token Blacklist Middleware
-    "accounts.middleware.TokenBlacklistMiddleware",
 ]
 
 ROOT_URLCONF = "opendataproject.urls"
@@ -155,18 +155,37 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_ALLOW_ALL_ORIGINS = True
+AUTH_USER_MODEL = "accounts.CustomUser"
+
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "https://honoxdatahub.vercel.app",
+]
+
 CORS_ALLOW_CREDENTIALS = True
 
-AUTH_USER_MODEL = "accounts.CustomUser"
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "https://honoxdatahub.vercel.app",
+]
+
+CSRF_COOKIE_SECURE = True  # Should be False for HTTP/Development
+
+SESSION_COOKIE_SECURE = True  # Should be False for HTTP/Development
+
 
 # JWT Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=14),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "AUTH_COOKIE_HTTPONLY": True,
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
 }
