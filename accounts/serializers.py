@@ -1,6 +1,8 @@
 from rest_framework import serializers
+from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from .validation import validate_email_field, validate_names, validate_password_fields
-from .models import CustomUser
+from .models import CustomUser, Review
 
 
 class CustomUserSerializer(serializers.Serializer):
@@ -53,6 +55,8 @@ class LoginSerializer(serializers.Serializer):
 
 
 class GetCustomUserSerializer(serializers.ModelSerializer):
+    profile_image = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
         fields = [
@@ -62,6 +66,46 @@ class GetCustomUserSerializer(serializers.ModelSerializer):
             "middle_name",
             "last_name",
             "role",
-            "profile_image_url",
+            "profile_image",
             "date_joined",
         ]
+
+    def get_profile_image(self, obj):
+        request = self.context.get("request")
+        if obj.profile_image:
+            if request is not None:
+                return request.build_absolute_uri(obj.profile_image.url)
+            return f"{settings.MEDIA_URL}{obj.profile_image}"
+        return None
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    content_type = serializers.CharField(write_only=True)
+    object_id = serializers.IntegerField(write_only=True)
+    content_object = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            "id",
+            "user",
+            "rating",
+            "comment",
+            "content_type",
+            "object_id",
+            "content_object",
+            "created_at",
+        ]
+
+    def validate_content_type(self, value):
+        """Ensure the provided content_type corresponds to a valid model."""
+        try:
+            return ContentType.objects.get(model=value.lower())
+        except ContentType.DoesNotExist:
+            raise serializers.ValidationError(
+                "Invalid content type. Make sure it is a valid model name."
+            )
+
+    def get_content_object(self, obj):
+        """Return the name of the reviewed object."""
+        return str(obj.content_object)

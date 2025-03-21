@@ -16,6 +16,8 @@ from .validators import (
     validate_notable_alumni,
     validate_inspection_record,
 )
+from django.conf import settings
+from urllib.parse import urljoin
 
 
 class ProvinceSerializer(serializers.Serializer):
@@ -273,9 +275,17 @@ class SchoolListSerializer(serializers.ModelSerializer):
         ]
 
     def get_cover(self, obj):
-        """Retrieve the first image of the school"""
+        """Retrieve the first image of the school and return the full URL."""
+        request = self.context.get("request")
         image = obj.images.first()
-        return image.image.url if image else None
+        if image and image.image:
+            image_url = image.image.url
+            # If request is available, construct the full URL
+            if request:
+                return request.build_absolute_uri(image_url)
+            # Fallback in case request is not available
+            return urljoin(settings.MEDIA_URL, image_url)
+        return None
 
 
 class SchoolDetailSerializer(serializers.ModelSerializer):
@@ -344,3 +354,11 @@ class SchoolCreateSerializer(serializers.ModelSerializer):
         #     )
 
         return data
+
+    def create(self, validated_data):
+        try:
+            # Add the current logged-in user to the validated data
+            validated_data["created_by"] = self.context["request"].user
+            return super().create(validated_data)
+        except Exception as e:
+            raise  # Re-raise the exception after logging it

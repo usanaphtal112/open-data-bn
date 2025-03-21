@@ -86,9 +86,20 @@ class School(models.Model):
     review_count = models.IntegerField(default=0)
     verified = models.BooleanField(default=False)
     verified_by = models.ForeignKey(
-        CustomUser, on_delete=models.CASCADE, null=True, blank=True
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="verified_schools",
     )
     school_description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_schools",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

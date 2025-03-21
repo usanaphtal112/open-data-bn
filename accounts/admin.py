@@ -11,7 +11,10 @@ class CustomUserAdmin(admin.ModelAdmin):
     ordering = ("email",)
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Personal info", {"fields": ("first_name", "middle_name", "last_name")}),
+        (
+            "Personal info",
+            {"fields": ("first_name", "middle_name", "last_name", "profile_image")},
+        ),
         ("Permissions", {"fields": ("role",)}),
     )
     add_fieldsets = (

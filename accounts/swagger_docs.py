@@ -1,6 +1,6 @@
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from .serializers import LoginSerializer
+from .serializers import LoginSerializer, ReviewSerializer
 
 # Register API Documentation
 register_api_docs = swagger_auto_schema(
@@ -103,5 +103,99 @@ get_users_api_docs = swagger_auto_schema(
                 ]
             },
         )
+    },
+)
+
+get_review_api_docs = swagger_auto_schema(
+    operation_description="Retrieve reviews for a specific model object",
+    manual_parameters=[
+        openapi.Parameter(
+            "content_type",
+            openapi.IN_QUERY,
+            description="The model type (e.g., 'school', 'hospital')",
+            type=openapi.TYPE_STRING,
+            required=True,
+        ),
+        openapi.Parameter(
+            "object_id",
+            openapi.IN_QUERY,
+            description="The object ID of the model being reviewed",
+            type=openapi.TYPE_INTEGER,
+            required=True,
+        ),
+    ],
+    responses={
+        200: openapi.Response(
+            description="List of reviews retrieved successfully",
+            examples={
+                "application/json": [
+                    {
+                        "user": "John",
+                        "rating": 5,
+                        "comment": "Great!",
+                        "created_at": "2024-03-16T10:00:00Z",
+                    },
+                    {
+                        "user": "Uwera",
+                        "rating": 4,
+                        "comment": "Good",
+                        "created_at": "2024-03-16T11:00:00Z",
+                    },
+                ]
+            },
+        ),
+        400: openapi.Response(
+            description="Bad Request - Invalid parameters",
+            examples={"application/json": {"error": "Invalid content_type"}},
+        ),
+    },
+)
+
+create_review_api_docs = swagger_auto_schema(
+    operation_description="Create a review for any model (School, Hospital, etc.)",
+    request_body=ReviewSerializer,
+    responses={
+        201: openapi.Response(
+            description="Review created successfully",
+            examples={"application/json": {"message": "Review added successfully"}},
+        ),
+        400: openapi.Response(
+            description="Invalid request data",
+            examples={"application/json": {"error": "Invalid content_type"}},
+        ),
+    },
+)
+
+update_review_api_docs = swagger_auto_schema(
+    operation_description="Update an existing review (Only by the review owner)",
+    request_body=ReviewSerializer,
+    responses={
+        200: openapi.Response(
+            description="Review updated successfully",
+            examples={"application/json": {"message": "Review updated successfully"}},
+        ),
+        400: openapi.Response(
+            description="Invalid request data",
+            examples={"application/json": {"error": "Invalid data provided"}},
+        ),
+        403: openapi.Response(
+            description="Forbidden - Not allowed to update this review",
+            examples={
+                "application/json": {"error": "You can only update your own review"}
+            },
+        ),
+        404: openapi.Response(
+            description="Review not found",
+            examples={"application/json": {"error": "Review not found"}},
+        ),
+    },
+)
+
+delete_review_api_docs = swagger_auto_schema(
+    operation_description="Delete a review by ID",
+    responses={
+        204: openapi.Response(description="Review deleted successfully"),
+        403: openapi.Response(description="Unauthorized"),
+        404: openapi.Response(description="Review not found"),
     },
 )

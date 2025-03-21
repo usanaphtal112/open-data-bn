@@ -1,5 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from .location_data import PROVINCES, DISTRICTS, SECTORS, CELLS, VILLAGES
@@ -128,6 +129,18 @@ class VillageAPIView(APIView):
         return Response(serializer.data)
 
 
+# class SchoolCreateView(generics.CreateAPIView):
+#     """
+#     API endpoint for creating a new school.
+#     """
+
+#     serializer_class = SchoolCreateSerializer
+
+#     @create_school_docs
+#     def post(self, request, *args, **kwargs):
+#         return super().post(request, *args, **kwargs)
+
+
 class SchoolCreateView(generics.CreateAPIView):
     """
     API endpoint for creating a new school.
@@ -137,7 +150,10 @@ class SchoolCreateView(generics.CreateAPIView):
 
     @create_school_docs
     def post(self, request, *args, **kwargs):
-        return super().post(request, *args, **kwargs)
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            raise  # Re-raise the exception after logging it
 
 
 class SchoolListAPIView(generics.ListAPIView):
@@ -436,3 +452,12 @@ class AdmissionPolicyCreateView(generics.CreateAPIView):
     @create_school_admission_policy_docs
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
+
+
+class UserSchoolListsAPIView(generics.ListAPIView):
+    serializer_class = SchoolListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        current_user = self.request.user
+        return School.objects.filter(created_by=current_user)

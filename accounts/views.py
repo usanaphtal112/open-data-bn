@@ -1,21 +1,32 @@
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model, authenticate
+from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
-import secrets
-import hashlib
-from .serializers import CustomUserSerializer, LoginSerializer, GetCustomUserSerializer
-from .validation import is_email_already_registered
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from .models import Review
+import secrets
+import hashlib
+from .serializers import (
+    CustomUserSerializer,
+    LoginSerializer,
+    GetCustomUserSerializer,
+    ReviewSerializer,
+)
+from .validation import is_email_already_registered
 from .swagger_docs import (
     register_api_docs,
     login_api_docs,
     logout_api_docs,
     get_users_api_docs,
+    get_review_api_docs,
+    create_review_api_docs,
+    update_review_api_docs,
+    delete_review_api_docs,
 )
 
 User = get_user_model()
@@ -255,5 +266,123 @@ class GetUserProfileAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        serializer = GetCustomUserSerializer(user)
+        serializer = GetCustomUserSerializer(user, context={"request": request})
         return Response(serializer.data, status=200)
+
+
+class ListReviewsView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [AllowAny]
+
+    @get_review_api_docs
+    def get(self, request, *args, **kwargs):
+        content_type = request.GET.get("content_type")
+        object_id = request.GET.get("object_id")
+
+        try:
+            content_type_obj = ContentType.objects.get(model=content_type)
+        except ContentType.DoesNotExist:
+            return Response(
+                {"error": "Invalid content_type"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        reviews = Review.objects.filter(
+            content_type=content_type_obj, object_id=object_id
+        ).select_related("user")
+
+        return Response(self.serializer_class(reviews, many=True).data)
+
+
+class CreateReviewView(generics.CreateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    @create_review_api_docs
+    def post(self, request, *args, **kwargs):
+        data = request.data
+        content_type = data.get("content_type")
+        object_id = data.get("object_id")
+
+        try:
+            content_type_obj = ContentType.objects.get(model=content_type)
+        except ContentType.DoesNotExist:
+            return Response(
+                {"error": "Invalid content_type"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        review = Review.objects.create(
+            user=request.user,
+            rating=data["rating"],
+            comment=data.get("comment", ""),
+            content_type=content_type_obj,
+            object_id=object_id,
+        )
+
+        # Update ratings immediately after saving
+        Review.update_ratings(content_type_obj, object_id)
+
+        return Response(
+            {"message": "Review added successfully"}, status=status.HTTP_201_CREATED
+        )
+
+
+class UpdateReviewView(generics.UpdateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Review.objects.filter(user=self.request.user)
+
+    @update_review_api_docs
+    def put(self, request, pk, *args, **kwargs):
+        """
+        Updates a review while ensuring the average rating is recalculated.
+        """
+        try:
+            review = self.get_queryset().get(pk=pk)
+
+            # Ensure the user updating the review is the one who created it
+            if review.user != request.user:
+                return Response(
+                    {"error": "You can only update your own review"},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # Update the fields based on user input
+            review.rating = request.data.get("rating", review.rating)
+            review.comment = request.data.get("comment", review.comment)
+            review.save()
+
+            # Update the ratings immediately after modifying the review
+            Review.update_ratings(review.content_type, review.object_id)
+
+            return Response(
+                {"message": "Review updated successfully"}, status=status.HTTP_200_OK
+            )
+
+        except Review.DoesNotExist:
+            return Response(
+                {"error": "Review not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+
+class DeleteReviewView(generics.DestroyAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Review.objects.filter(user=self.request.user)
+
+    @delete_review_api_docs
+    def delete(self, request, pk):
+        try:
+            review = self.get_queryset().get(pk=pk)
+            content_type = review.content_type
+            object_id = review.object_id
+            review.delete()
+
+            # Update ratings immediately after deleting
+            Review.update_ratings(content_type, object_id)
+
+            return Response(status=204)
+        except Review.DoesNotExist:
+            return Response({"error": "Review not found"}, status=404)

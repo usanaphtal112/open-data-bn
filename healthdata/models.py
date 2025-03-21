@@ -93,7 +93,7 @@ class HealthFacility(models.Model):
     verified = models.BooleanField(default=False)
     verified_by = models.ForeignKey(
         CustomUser,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="health_facility_verifier",
         null=True,
         blank=True,

@@ -8,6 +8,7 @@ from .views import (
     SchoolLocationCreateView,
     SchoolDetailView,
     SchoolListAPIView,
+    UserSchoolListsAPIView,
     SchoolListByHierarchicalLocationAPIView,
     SchoolListByIndependentLocationAPIView,
     SchoolFilterOptionsAPIView,
@@ -28,6 +29,11 @@ urlpatterns = [
     path("cells/", CellAPIView.as_view(), name="cells"),
     path("villages/", VillageAPIView.as_view(), name="villages"),
     path("schools/", SchoolListAPIView.as_view(), name="school-list"),
+    path(
+        "schools/user-schools/",
+        UserSchoolListsAPIView.as_view(),
+        name="users-school-list",
+    ),
     path("schools/<int:pk>/", SchoolDetailView.as_view(), name="school-detail"),
     path(
         "schools/by-location/independent/",
